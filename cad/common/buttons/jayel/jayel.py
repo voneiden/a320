@@ -1,117 +1,136 @@
+from dataclasses import dataclass
+
 from build123d import *
+
+
+@dataclass
+class JayelSwitch:
+    """
+    Width and height define the base dimensions of the underlying cutout
+    that the switch needs to fit into.
+    """
+
+    width: float
+    height: float
+    wall_thickness: float = 1.0
+    corner_radius: float = 0.5
+
+    @property
+    def diffuser_width(self):
+        return self.width - self.wall_thickness * 2
+
+    @property
+    def diffuser_height(self):
+        return (self.height - self.wall_thickness * 3) / 2
+
+    @property
+    def diffuser_offset(self):
+        return self.diffuser_height / 2 + self.wall_thickness / 2
+
+    def sleeve(
+        self,
+        stock_thickness,
+        ledge_offset=0.5,
+        ledge_thickness=1.0,
+    ):
+        outer_width = self.width + self.wall_thickness * 2
+        outer_height = self.height + self.wall_thickness * 2
+        ledge_width = outer_width + ledge_offset * 2
+        ledge_height = outer_height + ledge_offset * 2
+
+        with BuildPart() as builder:
+            with BuildSketch():
+                RectangleRounded(ledge_width, ledge_height, self.corner_radius)
+                RectangleRounded(
+                    self.width, self.height, self.corner_radius, mode=Mode.SUBTRACT
+                )
+
+            extrude(amount=-ledge_thickness)
+
+            with BuildSketch(builder.faces().sort_by(Axis.Z)[0]):
+                RectangleRounded(outer_width, outer_height, self.corner_radius)
+                RectangleRounded(
+                    self.width, self.height, self.corner_radius, mode=Mode.SUBTRACT
+                )
+
+            extrude(amount=stock_thickness - ledge_thickness)
+
+        return builder
+
+    def slider(
+        self,
+        stock_thickness=5,
+        diffuser_stock_thickness=3,
+        diffuser_ledge=0.5,
+    ):
+        lower_slot_width = self.diffuser_width - diffuser_ledge * 2
+        lower_slot_height = self.diffuser_height - diffuser_ledge * 2
+        with BuildPart() as builder:
+            with BuildSketch():
+                RectangleRounded(self.width, self.height, self.corner_radius)
+                with Locations((0, self.diffuser_offset), (0, -self.diffuser_offset)):
+                    RectangleRounded(
+                        self.diffuser_width,
+                        self.diffuser_height,
+                        self.corner_radius,
+                        mode=Mode.SUBTRACT,
+                    )
+            extrude(amount=-diffuser_stock_thickness)
+
+            with BuildSketch(builder.faces().sort_by(Axis.Z)[0]):
+                RectangleRounded(self.width, self.height, self.corner_radius)
+                with Locations((0, self.diffuser_offset), (0, -self.diffuser_offset)):
+                    RectangleRounded(
+                        lower_slot_width,
+                        lower_slot_height,
+                        self.corner_radius,
+                        mode=Mode.SUBTRACT,
+                    )
+            extrude(amount=stock_thickness - diffuser_stock_thickness)
+
+        return builder
+
+    def cover(self, stock_thickness=1):
+        with BuildPart() as builder:
+            with BuildSketch():
+                RectangleRounded(self.width, self.height, self.corner_radius)
+            extrude(amount=-stock_thickness)
+        return builder
+
+    def diffuser(self, stock_thickness=3, text=None):
+        with BuildPart() as builder:
+            with BuildSketch():
+                RectangleRounded(
+                    self.diffuser_width, self.diffuser_height, self.corner_radius
+                )
+            extrude(amount=-stock_thickness)
+            if text:
+                with BuildSketch():
+                    Text(text, 5)
+                extrude(amount=-0.1, mode=Mode.SUBTRACT)
+        return builder
+
+    def assembly(self, upper_text=None, lower_text=None):
+        sleeve = self.sleeve(3)
+        sleeve.part.color = Color("gray20")
+        slider = self.slider(5)
+        slider.part.move(Location((0, 0, -1)))
+        slider.part.color = Color("gray40")
+        cover = self.cover(1)
+        cover.part.color = Color(name="white", alpha=0.9)
+        upper_diffuser = self.diffuser(text=upper_text)
+        upper_diffuser.part.move(Location((0, self.diffuser_offset, -1)))
+        upper_diffuser.part.color = Color("gray80")
+        lower_diffuser = self.diffuser(text=lower_text)
+        lower_diffuser.part.move(Location((0, -self.diffuser_offset, -1)))
+        lower_diffuser.part.color = Color("gray80")
+        builders = [sleeve, slider, cover, upper_diffuser, lower_diffuser]
+
+        parts = [builder.part for builder in builders]
+        return Compound(children=parts)
+
+
+j = JayelSwitch(20, 20)
 from cq_viewer import show_object
 
-
-def sleeve(
-    width,
-    height,
-    stock_thickness,
-    ledge=0.5,
-    corner_radius=0.5,
-    wall_thickness=0.5,
-    ledge_thickness=1.0,
-):
-    outer_width = width + wall_thickness * 2
-    outer_height = height + wall_thickness * 2
-    ledge_width = outer_width + ledge * 2
-    ledge_height = outer_height + ledge * 2
-
-    with BuildPart() as sleeve_part:
-        with BuildSketch():
-            RectangleRounded(ledge_width, ledge_height, corner_radius)
-            RectangleRounded(width, height, corner_radius, mode=Mode.SUBTRACT)
-
-        extrude(amount=-ledge_thickness)
-
-        with BuildSketch(sleeve_part.faces().sort_by(Axis.Z)[0]):
-            RectangleRounded(outer_width, outer_height, corner_radius)
-            RectangleRounded(width, height, corner_radius, mode=Mode.SUBTRACT)
-
-        extrude(amount=stock_thickness - ledge_thickness)
-
-    return sleeve_part
-
-
-def slot_values(width, height, wall_thickness):
-    slot_width = width - wall_thickness * 2
-    slot_height = (height - wall_thickness * 3) / 2
-    slot_offset = slot_height / 2 + wall_thickness / 2
-
-    return slot_width, slot_height, slot_offset
-
-
-def slider(
-    width,
-    height,
-    slot_width,
-    slot_height,
-    slot_offset,
-    stock_thickness=5,
-    diffuser_thickness=3,
-    diffuser_ledge=0.5,
-    corner_radius=0.5,
-):
-    lower_slot_width = slot_width - diffuser_ledge * 2
-    lower_slot_height = slot_height - diffuser_ledge * 2
-    with BuildPart() as slider_part:
-        with BuildSketch(Plane.XY.offset(-1)):
-            RectangleRounded(width, height, corner_radius)
-            with Locations((0, slot_offset), (0, -slot_offset)):
-                RectangleRounded(
-                    slot_width, slot_height, corner_radius, mode=Mode.SUBTRACT
-                )
-        extrude(amount=-diffuser_thickness)
-
-        with BuildSketch(slider_part.faces().sort_by(Axis.Z)[0]):
-            RectangleRounded(width, height, corner_radius)
-            with Locations((0, slot_offset), (0, -slot_offset)):
-                RectangleRounded(
-                    lower_slot_width,
-                    lower_slot_height,
-                    corner_radius,
-                    mode=Mode.SUBTRACT,
-                )
-        extrude(amount=stock_thickness - diffuser_thickness)
-
-    return slider_part
-
-
-def cover(width, height, cover_thickness=1, corner_radius=0.5):
-    with BuildPart() as cover_part:
-        with BuildSketch():
-            RectangleRounded(width, height, corner_radius)
-        extrude(amount=-1)
-    return cover_part
-
-
-def diffuser(
-    diffuser_width, diffuser_height, corner_radius=0.5, stock_thickness=3, text=None
-):
-    with BuildPart() as diffuser_part:
-        with BuildSketch():
-            RectangleRounded(diffuser_width, diffuser_height, corner_radius)
-        extrude(amount=-stock_thickness)
-        if text:
-            with BuildSketch():
-                Text(text, 5)
-            extrude(amount=-0.1, mode=Mode.SUBTRACT)
-    return diffuser_part
-
-
-slot_width, slot_height, slot_offset = slot_values(20, 20, 1)
-
-sleeve_part = sleeve(20, 20, 3)
-slider_part = slider(20, 20, slot_width, slot_height, slot_offset)
-cover_part = cover(20, 20)
-upper_diffuser = diffuser(slot_width, slot_height, text="FAIL")
-upper_diffuser.part.move(Location((0, slot_offset, -1)))
-lower_diffuser = diffuser(slot_width, slot_height, text="TEST")
-lower_diffuser.part.move(Location((0, -slot_offset, -1)))
-# diffuser_assembly_part = diffuser_assembly(20, 20)
-
-
-show_object(sleeve_part, color="gray20")
-show_object(slider_part, color="gray40")
-# show_object(cover_part, color="white", transparency=0.8)
-show_object(upper_diffuser, color="gray10")
-show_object(lower_diffuser, color="gray80")
+show_object(j.assembly("FAIL", "MED"))
