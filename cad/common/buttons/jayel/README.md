@@ -9,7 +9,7 @@ the internals are significantly simplified from a real switch.
 There are X main components:
 
 * Outer sleeve that attaches to the panel. Slippery material like POM. 
-* Slider that has two light isolated compartments for lightplates
-* Lightplates that function as diffusers and have text engraved on them
+* Slider that has two light isolated compartments for diffusers
+* Diffusers that have text engraved on them
 * Circuit board for SMD leds
-* Coupler that attaches to the led board and to the mechanical switch on the mainboard
+* Connector that attaches to the led board and to the mechanical switch on the mainboard
