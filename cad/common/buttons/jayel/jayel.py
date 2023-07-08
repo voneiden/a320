@@ -1,6 +1,7 @@
 from dataclasses import dataclass
 
 from build123d import *
+from cad.fonts import panel_font_path
 
 
 @dataclass
@@ -113,7 +114,7 @@ class JayelSwitch:
             extrude(amount=-stock_thickness)
             if text:
                 with BuildSketch():
-                    Text(text, 5)
+                    Text(text, 5, font_path=panel_font_path)
                 extrude(amount=-0.1, mode=Mode.SUBTRACT)
             if frame:
                 with BuildSketch():
