@@ -14,6 +14,13 @@ class JayelSwitch:
     height: float
     wall_thickness: float = 1.0
     corner_radius: float = 0.5
+    slider_stock_thickness: float = 5
+    pcb_thickness: float = 1.6
+    cover_stock_thickness: float = 1
+
+    connector_length = 20
+    connector_width = 5
+    connector_stock_thickness = 3
 
     @property
     def diffuser_width(self):
@@ -54,12 +61,11 @@ class JayelSwitch:
                 )
 
             extrude(amount=stock_thickness - ledge_thickness)
-
+        builder.part.color = Color("gray20")
         return builder
 
     def slider(
         self,
-        stock_thickness=5,
         diffuser_stock_thickness=3,
         diffuser_ledge=0.5,
     ):
@@ -86,18 +92,19 @@ class JayelSwitch:
                         self.corner_radius,
                         mode=Mode.SUBTRACT,
                     )
-            extrude(amount=stock_thickness - diffuser_stock_thickness)
-
+            extrude(amount=self.slider_stock_thickness - diffuser_stock_thickness)
+        builder.part.color = Color("gray40")
         return builder
 
-    def cover(self, stock_thickness=1):
+    def cover(self):
         with BuildPart() as builder:
             with BuildSketch():
                 RectangleRounded(self.width, self.height, self.corner_radius)
-            extrude(amount=-stock_thickness)
+            extrude(amount=-self.cover_stock_thickness)
+        builder.part.color = Color(name="white", alpha=0.9)
         return builder
 
-    def diffuser(self, stock_thickness=3, text=None):
+    def diffuser(self, stock_thickness=3, text=None, frame=False):
         with BuildPart() as builder:
             with BuildSketch():
                 RectangleRounded(
@@ -108,29 +115,112 @@ class JayelSwitch:
                 with BuildSketch():
                     Text(text, 5)
                 extrude(amount=-0.1, mode=Mode.SUBTRACT)
+            if frame:
+                with BuildSketch():
+                    frame_padding = 2
+                    frame_outer_width = self.diffuser_width - frame_padding
+                    frame_outer_height = self.diffuser_height - frame_padding
+                    frame_line_width = 0.5
+                    frame_inner_width = frame_outer_width - (frame_line_width * 2)
+                    frame_inner_height = frame_outer_height - (frame_line_width * 2)
+                    RectangleRounded(frame_outer_width, frame_outer_height, 1)
+                    RectangleRounded(
+                        frame_inner_width, frame_inner_height, 0.5, mode=Mode.SUBTRACT
+                    )
+                extrude(amount=-0.1, mode=Mode.SUBTRACT)
+        builder.part.color = Color("gray80")
+        return builder
+
+    def pcb(self):
+        """Mock model for the led circuit board"""
+        with BuildPart() as builder:
+            with BuildSketch():
+                RectangleRounded(self.width, self.height, self.corner_radius)
+            extrude(amount=-self.pcb_thickness)
+
+        builder.part.color = Color("yellowgreen")
+        return builder
+
+    def connector(self):
+        half_width = self.connector_width / 2
+        with BuildPart() as builder:
+            # Cylinder(2.5, 20, align=(Align.CENTER, Align.CENTER, Align.MIN))
+            with BuildSketch(Plane.XZ):
+                Rectangle(
+                    self.connector_width,
+                    self.connector_length,
+                    align=(Align.CENTER, Align.MIN),
+                )
+                with BuildLine():
+                    Polyline(
+                        (-1.5, 0),
+                        (-1.5, 1),
+                        (-1.25, 1.5),
+                        (-1.5, 2),
+                        (-1.5, 3),
+                        (1.5, 3),
+                        (1.5, 2),
+                        (1.25, 1.5),
+                        (1.5, 1),
+                        (1.5, 0),
+                        close=True,
+                    )
+                make_face(mode=Mode.SUBTRACT)
+            # extrude(amount=3, both=True, mode=Mode.SUBTRACT)
+            extrude(amount=self.connector_stock_thickness / 2, both=True)
+        builder.part.color = Color("gray30")
         return builder
 
     def assembly(self, upper_text=None, lower_text=None):
+        from cad.pcb.switches.switch_8x8 import Switch8x8
+
         sleeve = self.sleeve(3)
-        sleeve.part.color = Color("gray20")
-        slider = self.slider(5)
+
+        slider = self.slider()
         slider.part.move(Location((0, 0, -1)))
-        slider.part.color = Color("gray40")
-        cover = self.cover(1)
-        cover.part.color = Color(name="white", alpha=0.9)
+        cover = self.cover()
         upper_diffuser = self.diffuser(text=upper_text)
         upper_diffuser.part.move(Location((0, self.diffuser_offset, -1)))
-        upper_diffuser.part.color = Color("gray80")
-        lower_diffuser = self.diffuser(text=lower_text)
+        lower_diffuser = self.diffuser(text=lower_text, frame=True)
         lower_diffuser.part.move(Location((0, -self.diffuser_offset, -1)))
-        lower_diffuser.part.color = Color("gray80")
-        builders = [sleeve, slider, cover, upper_diffuser, lower_diffuser]
+        pcb = self.pcb()
+        pcb.part.move(
+            Location(
+                (0, 0, -(self.cover_stock_thickness + self.slider_stock_thickness))
+            )
+        )
+        connector = self.connector()
+        connector.part.move(
+            Location(
+                (
+                    0,
+                    0,
+                    -(
+                        self.cover_stock_thickness
+                        + self.slider_stock_thickness
+                        + self.connector_length
+                    ),
+                )
+            )
+        )
+        switch = Switch8x8().assembly()
+        switch.move(Location((0, 0, -28.2)))
+        builders = [
+            sleeve,
+            slider,
+            cover,
+            upper_diffuser,
+            lower_diffuser,
+            pcb,
+            connector,
+        ]
 
         parts = [builder.part for builder in builders]
-        return Compound(children=parts)
+        return Compound(children=parts + [switch])
 
 
-j = JayelSwitch(20, 20)
-from cq_viewer import show_object
+if __name__ == "__cq_viewer__":
+    j = JayelSwitch(20, 20)
+    from cq_viewer import show_object
 
-show_object(j.assembly("FAIL", "MED"))
+    show_object(j.assembly("DECEL", "ON"))
