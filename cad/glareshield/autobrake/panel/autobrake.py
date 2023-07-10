@@ -42,12 +42,12 @@ class Autobrake:
 # __name__ = "__cq_viewer__"
 
 
-def cnc_single_sleeve():
+def cnc_single_sleeve(left_ledge=True, right_ledge=True):
     from cq_viewer import show_object
     from ocp_freecad_cam import Job, Endmill
 
     j = JayelSwitch(19.5, 19.5)
-    sleeve = j.sleeve(4)
+    sleeve = j.sleeve(4, left_ledge=left_ledge, right_ledge=right_ledge)
     show_object(sleeve)
 
     endmill_1mm = Endmill(diameter=1)
@@ -63,8 +63,12 @@ def cnc_single_sleeve():
     )
 
     job.show(show_object)
-    with open("autobrake_single_sleeve.nc", "w") as f:
-        f.write(job.to_gcode())
+    name = ["autobrake/single_sleeve"]
+    if not left_ledge:
+        name.append("no_left_ledge")
+    if not right_ledge:
+        name.append("no_right_ledge")
+    save_gcode(job, "_".join(name))
 
 
 def cnc_single_slider():
@@ -88,7 +92,7 @@ def cnc_single_slider():
 
 
 if __name__ == "__cq_viewer__":
-    cnc_single_slider()
+    cnc_single_sleeve(left_ledge=True, right_ledge=False)
 
 
 def cnc_diffusers():

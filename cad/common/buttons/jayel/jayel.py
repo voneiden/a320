@@ -40,6 +40,8 @@ class JayelSwitch:
         stock_thickness,
         ledge_offset=0.5,
         ledge_thickness=1.0,
+        left_ledge=True,
+        right_ledge=True,
     ):
         outer_width = self.width + self.wall_thickness * 2
         outer_height = self.height + self.wall_thickness * 2
@@ -52,16 +54,27 @@ class JayelSwitch:
                 RectangleRounded(
                     self.width, self.height, self.corner_radius, mode=Mode.SUBTRACT
                 )
-
+                remove_ledge_locations = []
+                remove_ledge_center_offset = (outer_width + ledge_offset) / 2
+                if not left_ledge:
+                    remove_ledge_locations.append(
+                        Location((-remove_ledge_center_offset, 0, 0))
+                    )
+                if not right_ledge:
+                    remove_ledge_locations.append(
+                        Location((remove_ledge_center_offset, 0, 0))
+                    )
+                with Locations(*remove_ledge_locations):
+                    Rectangle(ledge_offset, ledge_height, mode=Mode.SUBTRACT)
             extrude(amount=-ledge_thickness)
 
-            with BuildSketch(builder.faces().sort_by(Axis.Z)[0]):
+            with BuildSketch(Location((0, 0, -ledge_thickness))):
                 RectangleRounded(outer_width, outer_height, self.corner_radius)
                 RectangleRounded(
                     self.width, self.height, self.corner_radius, mode=Mode.SUBTRACT
                 )
 
-            extrude(amount=stock_thickness - ledge_thickness)
+            extrude(amount=-(stock_thickness - ledge_thickness))
         builder.part.color = Color("gray20")
         return builder
 
@@ -252,4 +265,5 @@ if __name__ == "__cq_viewer__":
     from cq_viewer import show_object
 
     # show_object(j.assembly("DECEL", "ON"))
-    show_object(j.assembly())
+    # show_object(j.assembly())
+    show_object(j.sleeve(4, left_ledge=False, right_ledge=False))
