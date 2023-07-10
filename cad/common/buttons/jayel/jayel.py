@@ -105,18 +105,26 @@ class JayelSwitch:
         builder.part.color = Color(name="white", alpha=0.9)
         return builder
 
-    def diffuser(self, stock_thickness=3, text=None, frame=False):
+    def diffuser(self, stock_thickness=3, text=None, frame=False, triangle=False):
         with BuildPart() as builder:
             with BuildSketch():
                 RectangleRounded(
                     self.diffuser_width, self.diffuser_height, self.corner_radius
                 )
             extrude(amount=-stock_thickness)
-            if text:
+            with BuildSketch(builder.faces().sort_by()[0]):
+                RectangleRounded(
+                    self.diffuser_width - 1.5,
+                    self.diffuser_height - 1.5,
+                    self.corner_radius,
+                )
+            extrude(amount=-stock_thickness / 2, mode=Mode.SUBTRACT)
+
+            if text and not triangle:
                 with BuildSketch():
                     Text(text, 5, font_path=panel_font_path)
                 extrude(amount=-0.1, mode=Mode.SUBTRACT)
-            if frame:
+            if frame and not triangle:
                 with BuildSketch():
                     frame_padding = 2
                     frame_outer_width = self.diffuser_width - frame_padding
@@ -128,6 +136,25 @@ class JayelSwitch:
                     RectangleRounded(
                         frame_inner_width, frame_inner_height, 0.5, mode=Mode.SUBTRACT
                     )
+                extrude(amount=-0.1, mode=Mode.SUBTRACT)
+
+            if triangle:
+                with BuildSketch():
+                    with BuildLine() as tri:
+                        tri_padding = 2
+                        tri_horizontal = (self.diffuser_width - tri_padding) / 2
+                        tri_vertical = (self.diffuser_height - tri_padding) / 2
+
+                        Polyline(
+                            (-tri_horizontal, tri_vertical),
+                            (tri_horizontal, tri_vertical),
+                            (0, -tri_vertical),
+                            close=True,
+                        )
+
+                    make_face()
+
+                    offset(amount=-1, mode=Mode.SUBTRACT)
                 extrude(amount=-0.1, mode=Mode.SUBTRACT)
         builder.part.color = Color("gray80")
         return builder
@@ -224,4 +251,5 @@ if __name__ == "__cq_viewer__":
     j = JayelSwitch(20, 20)
     from cq_viewer import show_object
 
-    show_object(j.assembly("DECEL", "ON"))
+    # show_object(j.assembly("DECEL", "ON"))
+    show_object(j.assembly())
