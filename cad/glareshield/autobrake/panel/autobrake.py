@@ -52,16 +52,19 @@ def cnc_single_sleeve(left_ledge=True, right_ledge=True):
 
     endmill_1mm = Endmill(diameter=1)
     sorted_faces = sleeve.part.faces().group_by()
+    sorted_edges = sleeve.part.edges().group_by()
     top = sorted_faces[-1][0]
     bottom = sorted_faces[0][0]
     mid = sorted_faces[1]
+    if not left_ledge or not right_ledge:
+        mid += sorted_faces[3]
 
     job = (
         Job(bottom, sleeve.part, "grbl")
         .profile(mid, endmill_1mm)
         .profile(top, endmill_1mm, holes=True)
     )
-
+    show_object(mid)
     job.show(show_object)
     name = ["autobrake/single_sleeve"]
     if not left_ledge:
@@ -69,6 +72,7 @@ def cnc_single_sleeve(left_ledge=True, right_ledge=True):
     if not right_ledge:
         name.append("no_right_ledge")
     save_gcode(job, "_".join(name))
+    job.save_fcstd(("sleeve_debug.fcstd"))
 
 
 def cnc_single_slider():
@@ -85,14 +89,17 @@ def cnc_single_slider():
     top = faces[-1]
     bottom = faces[0]
 
-    job = Job(top, slider.part, "grbl").profile(bottom, endmill_1mm, holes=True)
+    job = (
+        Job(top, slider.part, "grbl")
+        .profile(bottom, endmill_1mm, holes=True)
+    )
 
     job.show(show_object)
     save_gcode(job, "autobrake/single_slider")
 
 
 if __name__ == "__cq_viewer__":
-    cnc_single_sleeve(left_ledge=True, right_ledge=False)
+    cnc_single_sleeve(left_ledge=True, right_ledge=True)
 
 
 def cnc_diffusers():
