@@ -89,10 +89,7 @@ def cnc_single_slider():
     top = faces[-1]
     bottom = faces[0]
 
-    job = (
-        Job(top, slider.part, "grbl")
-        .profile(bottom, endmill_1mm, holes=True)
-    )
+    job = Job(top, slider.part, "grbl").profile(bottom, endmill_1mm, holes=True)
 
     job.show(show_object)
     save_gcode(job, "autobrake/single_slider")

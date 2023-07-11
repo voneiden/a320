@@ -14,7 +14,7 @@ class KorrySwitch:
     width: float
     height: float
     wall_thickness: float = 1.0
-    corner_radius: float = 0.5
+    corner_radius: float = 3.175/2
     slider_stock_thickness: float = 5
     pcb_thickness: float = 1.6
     cover_stock_thickness: float = 1
@@ -22,18 +22,27 @@ class KorrySwitch:
     connector_length = 20
     connector_width = 5
     connector_stock_thickness = 3
+    slider_tolerance = 0.1
 
     @property
     def diffuser_width(self):
-        return self.width - self.wall_thickness * 2
+        return self.inner_width - self.wall_thickness * 2
 
     @property
     def diffuser_height(self):
-        return (self.height - self.wall_thickness * 3) / 2
+        return (self.inner_height - self.wall_thickness * 3) / 2
 
     @property
     def diffuser_offset(self):
         return self.diffuser_height / 2 + self.wall_thickness / 2
+
+    @property
+    def inner_width(self):
+        return self.width - self.wall_thickness * 2
+
+    @property
+    def inner_height(self):
+        return self.height - self.wall_thickness * 2
 
     def sleeve(
         self,
@@ -43,8 +52,10 @@ class KorrySwitch:
         left_ledge=True,
         right_ledge=True,
     ):
-        outer_width = self.width + self.wall_thickness * 2
-        outer_height = self.height + self.wall_thickness * 2
+        outer_width = self.width
+        outer_height = self.height
+        inner_width = self.inner_width
+        inner_height = self.inner_height
         ledge_width = outer_width + ledge_offset * 2
         ledge_height = outer_height + ledge_offset * 2
 
@@ -52,7 +63,7 @@ class KorrySwitch:
             with BuildSketch():
                 RectangleRounded(ledge_width, ledge_height, self.corner_radius)
                 RectangleRounded(
-                    self.width, self.height, self.corner_radius, mode=Mode.SUBTRACT
+                    inner_width, inner_height, self.corner_radius, mode=Mode.SUBTRACT
                 )
                 remove_ledge_locations = []
                 remove_ledge_center_offset = (outer_width + ledge_offset) / 2
@@ -71,7 +82,7 @@ class KorrySwitch:
             with BuildSketch(Location((0, 0, -ledge_thickness))):
                 RectangleRounded(outer_width, outer_height, self.corner_radius)
                 RectangleRounded(
-                    self.width, self.height, self.corner_radius, mode=Mode.SUBTRACT
+                    inner_width, inner_height, self.corner_radius, mode=Mode.SUBTRACT
                 )
 
             extrude(amount=-(stock_thickness - ledge_thickness))
@@ -85,9 +96,11 @@ class KorrySwitch:
     ):
         lower_slot_width = self.diffuser_width - diffuser_ledge * 2
         lower_slot_height = self.diffuser_height - diffuser_ledge * 2
+        width = self.inner_width - self.slider_tolerance * 2
+        height = self.inner_height - self.slider_tolerance * 2
         with BuildPart() as builder:
             with BuildSketch():
-                RectangleRounded(self.width, self.height, self.corner_radius)
+                RectangleRounded(width, height, self.corner_radius)
                 with Locations((0, self.diffuser_offset), (0, -self.diffuser_offset)):
                     RectangleRounded(
                         self.diffuser_width,
@@ -98,7 +111,7 @@ class KorrySwitch:
             extrude(amount=-diffuser_stock_thickness)
 
             with BuildSketch(builder.faces().sort_by(Axis.Z)[0]):
-                RectangleRounded(self.width, self.height, self.corner_radius)
+                RectangleRounded(width, height, self.corner_radius)
                 with Locations((0, self.diffuser_offset), (0, -self.diffuser_offset)):
                     RectangleRounded(
                         lower_slot_width,
@@ -111,9 +124,11 @@ class KorrySwitch:
         return builder
 
     def cover(self):
+        width = self.inner_width - self.slider_tolerance * 2
+        height = self.inner_height - self.slider_tolerance * 2
         with BuildPart() as builder:
             with BuildSketch():
-                RectangleRounded(self.width, self.height, self.corner_radius)
+                RectangleRounded(width, height, self.corner_radius)
             extrude(amount=-self.cover_stock_thickness)
         builder.part.color = Color(name="white", alpha=0.9)
         return builder
@@ -176,7 +191,9 @@ class KorrySwitch:
         """Mock model for the led circuit board"""
         with BuildPart() as builder:
             with BuildSketch():
-                RectangleRounded(self.width, self.height, self.corner_radius)
+                RectangleRounded(
+                    self.inner_width, self.inner_height, self.corner_radius
+                )
             extrude(amount=-self.pcb_thickness)
 
         builder.part.color = Color("yellowgreen")
@@ -265,5 +282,5 @@ if __name__ == "__cq_viewer__":
     from cq_viewer import show_object
 
     # show_object(j.assembly("DECEL", "ON"))
-    # show_object(j.assembly())
-    show_object(j.sleeve(4, left_ledge=False, right_ledge=False))
+    show_object(j.assembly())
+    # show_object(j.sleeve(4, left_ledge=True, right_ledge=True))
