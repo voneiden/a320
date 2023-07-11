@@ -14,7 +14,7 @@ class KorrySwitch:
     width: float
     height: float
     wall_thickness: float = 1.0
-    corner_radius: float = 3.175/2
+    corner_radius: float = 3.175 / 2
     slider_stock_thickness: float = 5
     pcb_thickness: float = 1.6
     cover_stock_thickness: float = 1
