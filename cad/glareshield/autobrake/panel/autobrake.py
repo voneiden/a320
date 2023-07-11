@@ -4,7 +4,7 @@ from copy import copy
 from build123d import *
 from ocp_freecad_cam.api import Tab
 
-from cad.common.buttons.jayel.jayel import JayelSwitch
+from cad.common.buttons.jayel.korry import JayelSwitch
 from cad.nc import save_gcode
 
 
