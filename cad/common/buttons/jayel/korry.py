@@ -5,7 +5,7 @@ from cad.fonts import panel_font_path
 
 
 @dataclass
-class JayelSwitch:
+class KorrySwitch:
     """
     Width and height define the base dimensions of the underlying cutout
     that the switch needs to fit into.
@@ -261,7 +261,7 @@ class JayelSwitch:
 
 
 if __name__ == "__cq_viewer__":
-    j = JayelSwitch(20, 20)
+    j = KorrySwitch(20, 20)
     from cq_viewer import show_object
 
     # show_object(j.assembly("DECEL", "ON"))

@@ -4,13 +4,13 @@ from copy import copy
 from build123d import *
 from ocp_freecad_cam.api import Tab
 
-from cad.common.buttons.jayel.korry import JayelSwitch
+from cad.common.buttons.jayel.korry import KorrySwitch
 from cad.nc import save_gcode
 
 
 class Autobrake:
     def diffusers(self):
-        j = JayelSwitch(19.5, 19.5)
+        j = KorrySwitch(19.5, 19.5)
         decel = j.diffuser(text="DECEL").part
         on = j.diffuser(text="ON", frame=True).part
         unlk = j.diffuser(text="UNLK").part
@@ -46,7 +46,7 @@ def cnc_single_sleeve(left_ledge=True, right_ledge=True):
     from cq_viewer import show_object
     from ocp_freecad_cam import Job, Endmill
 
-    j = JayelSwitch(19.5, 19.5)
+    j = KorrySwitch(19.5, 19.5)
     sleeve = j.sleeve(4, left_ledge=left_ledge, right_ledge=right_ledge)
     show_object(sleeve)
 
@@ -79,7 +79,7 @@ def cnc_single_slider():
     from cq_viewer import show_object
     from ocp_freecad_cam import Job, Endmill
 
-    j = JayelSwitch(19.5, 19.5)
+    j = KorrySwitch(19.5, 19.5)
     slider = j.slider(4)
     show_object(slider)
 
