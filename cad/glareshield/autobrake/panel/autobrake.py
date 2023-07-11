@@ -4,7 +4,7 @@ from copy import copy
 from build123d import *
 from ocp_freecad_cam.api import Tab
 
-from cad.common.buttons.jayel.korry import KorrySwitch
+from cad.common.buttons.korry.korry import KorrySwitch
 from cad.nc import save_gcode
 
 
