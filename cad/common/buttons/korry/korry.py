@@ -2,6 +2,7 @@ from dataclasses import dataclass
 
 from build123d import *
 from cad.fonts import panel_font_path
+from cad.dxf import save_dxf
 
 
 @dataclass
@@ -269,12 +270,19 @@ class KorrySwitch:
             cover,
             upper_diffuser,
             lower_diffuser,
-            pcb,
-            connector,
+            #pcb,
+            #connector,
         ]
 
         parts = [builder.part for builder in builders]
         return Compound(children=parts + [switch])
+
+
+def slider_svg_footprint():
+    korry = KorrySwitch(19.5, 19.5)
+    slider = korry.slider()
+    bottom_face = slider.faces().sort_by()[0]
+    save_dxf(bottom_face, "common/buttons/korry/slider.dxf")
 
 
 if __name__ == "__cq_viewer__":
@@ -282,5 +290,6 @@ if __name__ == "__cq_viewer__":
     from cq_viewer import show_object
 
     # show_object(j.assembly("DECEL", "ON"))
-    show_object(j.assembly())
+    show_object(j.assembly("FAULT", "ON"))
+    slider_svg_footprint()
     # show_object(j.sleeve(4, left_ledge=True, right_ledge=True))
