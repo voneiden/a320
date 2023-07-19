@@ -3,6 +3,7 @@ from cad.nc import save_gcode
 from ocp_freecad_cam import Job, Endmill
 
 
+
 def cam_sleeve(
     name,
     width,
@@ -56,14 +57,20 @@ def cam_slider(
     if show_object:
         show_object(slider)
 
-    faces = slider.part.faces().sort_by()
-    top = faces[-1]
-    bottom = faces[0]
+    faces = slider.part.faces().group_by()
+    top = faces[-1][0]
+    bottom = faces[0][0]
+    mid = faces[-2]
 
     endmill_1mm = Endmill(diameter=1)
-    job = Job(top, slider.part, "grbl").profile(bottom, endmill_1mm, holes=True)
+    job = (
+        Job(top, slider.part, "grbl")
+        .profile(mid, endmill_1mm, side="in")
+        .profile(bottom, endmill_1mm, holes=True)
+    )
 
     if show_object:
+        show_object(mid)
         job.show(show_object)
 
     output_name = [name, f"{width}x{height}x{stock_thickness}", f"r{corner_radius}"]
@@ -76,16 +83,15 @@ if __name__ == "__cq_viewer__":
 else:
     show_object = None
 
-cam_sleeve("korry/sleeve", 19.5, 19.5, 4, left_ledge=True, right_ledge=True)
+#cam_sleeve("korry/sleeve", 19.5, 19.5, 4, left_ledge=True, right_ledge=True)
 cam_sleeve(
     "korry/sleeve",
-    19.5,
+    19.86,
     19.5,
     4,
     left_ledge=False,
     right_ledge=True,
-    show_object=show_object,
 )
-cam_sleeve("korry/sleeve", 19.5, 19.5, 4, left_ledge=True, right_ledge=False)
-cam_sleeve("korry/sleeve", 19.5, 19.5, 4, left_ledge=False, right_ledge=False)
-cam_slider("korry/slider", 19.5, 19.5, 4)
+#cam_sleeve("korry/sleeve", 19.86, 19.5, 4, left_ledge=True, right_ledge=False)
+#cam_sleeve("korry/sleeve", 19.86, 19.5, 4, left_ledge=False, right_ledge=False)
+cam_slider("korry/slider", 19.5, 19.5, 3, show_object=show_object)
